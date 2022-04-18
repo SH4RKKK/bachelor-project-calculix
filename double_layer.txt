@@ -1,0 +1,111 @@
+finish
+/clear
+!-----------------------
+! parameters definition
+!-----------------------
+! >>>>>GEOMETRICAL FEATURES<<<<<
+height = 10
+width = 20
+refinement_t=1.2
+ndiv_h=56			!number of division 
+ndiv_v=64			!number of division 
+grad=1				!refining gradient
+! >>>>> MATERIAL PROPERTIES1<<<<<
+E_Young_zona = 10    		! Young's modulus, kPa (ZP)
+ni_zp = 0.3           		! Poisson's ratio
+fric=0.0001			!friction coefficient
+eps=1e-3
+! >>>>> MATERIAL PROPERTIES2<<<<<
+E_Young_zona = 200    		! Young's modulus, kPa (ZP)
+ni_zp = 0.1 	       		! Poisson's ratio
+fric=0.0001
+! >>>>>LOAD & BC<<<<<
+pressure = 250/1e3 !Pa
+steps =4
+/prep7				!preprocessing
+ET,1,PLANE183			!plane element
+keyopt,1,3,1    		!symm
+!keyopt,1,6,1			!mixed u/P formulation
+!ZONA
+mp,mu,1,fric
+mp,ex,1,E_Young_zona
+mp,prxy,1,ni_zp
+
+mp,mu,2,fric
+mp,ex,2,E_Young_zona
+mp,prxy,2,ni_zp
+
+
+!MODEL KP - bottom up approach
+!base geom keypoints
+K,1,0,height
+K,2,width,height
+K,3,width,0
+K,4,0,0
+K,5,0,2*height
+K,6,width,2*height
+
+
+!draw lines between keypoint
+L,1,2
+L,2,3
+L,3,4
+L,4,1
+
+L,1,5
+L,5,6
+L,6,2
+
+!define area from lines
+AL,1,2,3,4
+AL,5,6,7,1
+
+!mapped mesh
+!horizontal lines
+LSEL,s,line,,1,3,2
+LESIZE,all,,,ndiv_h
+LSEL,s,line,,6,8,2
+LESIZE,all,,,ndiv_h
+
+!vertical
+LSEL,s,line,,2,4,2
+LESIZE,all,,,ndiv_v
+LSEL,s,line,,5,7,2
+LESIZE,all,,,ndiv_v
+mshape,0,2D			!mesh with quadrilateral elements
+mshkey,1
+!mesh the ZP
+ASEL,s,area,,1
+mat,1
+amesh,all
+ASEL,s,area,,2
+mat,2
+amesh,all
+
+
+/solu
+eps=1e-6
+!constraint on the bottom line
+DL,3,,all,0
+!pressure
+LSEL,s,line,,6
+SFL,all,pres,-(pressure)
+ALLSEL,all
+
+! Solution
+solve
+
+/POST1
+path,axpath,2,30,20 
+ppath,1,,0,0 
+ppath,2,,0,2*height
+PDEF,axUY,U,Y
+PDEF,axSY,S,Y
+PAGET,PathData,TABLE
+*CFOPEN,PathDataUY,txt!,,append
+*do,j,1,2
+*VWRITE,PathData(j,2),PathData(j,5),PathData(j,6)
+(F8.4,F8.4,F8.4)
+*enddo
+*CFCLOS
+
