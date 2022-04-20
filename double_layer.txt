@@ -44,7 +44,10 @@ K,3,width,0
 K,4,0,0
 K,5,0,2*height
 K,6,width,2*height
-
+!die top
+K,7,0,2.2*height
+K,8,0.5*width,2.2*height
+K,9,0,5*height
 
 !draw lines between keypoint
 L,1,2
@@ -53,8 +56,10 @@ L,3,4
 L,4,1
 
 L,1,5
-L,5,6
+L,6,5
 L,6,2
+
+L,8,7
 
 !define area from lines
 AL,1,2,3,4
@@ -82,18 +87,54 @@ ASEL,s,area,,2
 mat,2
 amesh,all
 
+!contact surfaces
+ET,2,TARGE169
+ET,3,CONTA172
+KEYOPT,3,2,0 	!Contact algorithm: Augmented Lagrangian
+KEYOPT,3,7,1 	!Element level time incrementation control: Automatic bisection of increment
+KEYOPT,3,9,2 	!Include both initial geometrical penetration or gap and offset, but with ramped effects
+KEYOPT,3,10,2 	!Contact stiffness update: Each iteration
+allsel,all
+
+!FIRST CONTACT PAIR: B HOLDER------
+TYPE,2						!TARGET
+REAL,2
+LDIV,0.5*ndiv_h,,,23
+LSEL,s,line,,8,8,1 !im doing this wrong > no proper mesh
+LMESH,all
+KMESH,9
+allsel,all
+!-----------------------------------
+TYPE,3						!CONTACT
+REAL,2
+LSEL,s,line,,6
+NSLL,s,1
+ESURF
+allsel,all
 
 /solu
 eps=1e-6
 !constraint on the bottom line
 DL,3,,all,0
 !pressure
-LSEL,s,line,,6
-SFL,all,pres,-(pressure)
+!LSEL,s,line,,6
+!SFL,all,pres,-(pressure)
 ALLSEL,all
 
+j=1
+*do,ii,1,10
+	TIME,ii
+    DK,9,uy,((0.05*height*j)/10) !line not moving
+    j=j+1
+	allsel,all
+	OUTRES,basic,last	
+	LSWRITE,ii
+*enddo
+
 ! Solution
-solve
+NLGEOM, ON
+NCNV, 2
+LSSOLVE,1,10,1
 
 /POST1
 path,axpath,2,30,20 
