@@ -7,8 +7,8 @@ finish
 height = 10
 width = 20
 refinement_t=1.2
-ndiv_h=56			!number of division 
-ndiv_v=64			!number of division 
+ndiv_h=112			!number of division 
+ndiv_v=32			!number of division 
 grad=1				!refining gradient
 ! >>>>> MATERIAL PROPERTIES1<<<<<
 E_Young_zona = 10    		! Young's modulus, kPa (ZP)
@@ -20,7 +20,7 @@ E_Young_zona = 200    		! Young's modulus, kPa (ZP)
 ni_zp = 0.1 	       		! Poisson's ratio
 fric=0.0001
 ! >>>>>LOAD & BC<<<<<
-pressure = 250/1e3 !Pa
+pressure = 25000/1e3 !Pa
 steps =4
 /prep7				!preprocessing
 ET,1,PLANE183			!plane element
@@ -42,12 +42,17 @@ K,1,0,height
 K,2,width,height
 K,3,width,0
 K,4,0,0
-K,5,0,2*height
-K,6,width,2*height
-!die top
-K,7,0,2.2*height
-K,8,0.5*width,2.2*height
-K,9,0,5*height
+K,5,0,1.5*height
+K,6,width,1.5*height
+K,7,0.1*width,1.5*height
+K,8,0.15*width,1.5*height
+
+!die
+K,9,0.1125*width,1.5001*height
+K,10,0.1125*width,1.6*height
+K,11,0.1375*width,1.5001*height
+K,12,0.1375*width,1.6*height
+K,13,0,3*height
 
 !draw lines between keypoint
 L,1,2
@@ -56,28 +61,40 @@ L,3,4
 L,4,1
 
 L,1,5
-L,6,5
+L,5,7
+L,7,8
+L,8,6
 L,6,2
 
-L,8,7
+L,10,9
+L,9,11
+L,11,12
 
 !define area from lines
 AL,1,2,3,4
-AL,5,6,7,1
+AL,1,5,6,7,8,9
+
+
+LSEL,s,line,,6,8,1
+LCOMB,all,1
+LSEL,s,line,,10,12,1
+LCOMB,all,0
 
 !mapped mesh
 !horizontal lines
 LSEL,s,line,,1,3,2
 LESIZE,all,,,ndiv_h
-LSEL,s,line,,6,8,2
+LSEL,s,line,,1,13,12 !fail to mesh
 LESIZE,all,,,ndiv_h
 
-!vertical
+!vertical one needs to be halved.
 LSEL,s,line,,2,4,2
 LESIZE,all,,,ndiv_v
-LSEL,s,line,,5,7,2
-LESIZE,all,,,ndiv_v
-mshape,0,2D			!mesh with quadrilateral elements
+LSEL,s,line,,5,9,4
+LESIZE,all,,,ndiv_v*0.5
+
+!mesh with quadrilateral elements
+mshape,0,2D			
 mshkey,1
 !mesh the ZP
 ASEL,s,area,,1
@@ -99,16 +116,18 @@ allsel,all
 !FIRST CONTACT PAIR: B HOLDER------
 TYPE,2						!TARGET
 REAL,2
-LDIV,0.5*ndiv_h,,,23
-LSEL,s,line,,8,8,1 !im doing this wrong > no proper mesh
+LDIV,10,,,8
+LSEL,s,line,,7,8+10,1
 LMESH,all
-KMESH,9
+KMESH,13
 allsel,all
 !-----------------------------------
 TYPE,3						!CONTACT
 REAL,2
-LSEL,s,line,,6
-NSLL,s,1
+NSEL,S,LOC,X,0.1*width,0.15*width
+NSEL,R,LOC,Y,1.5*height
+!LSEL,s,line,,6
+!NSLL,s,1
 ESURF
 allsel,all
 
@@ -118,23 +137,17 @@ eps=1e-6
 DL,3,,all,0
 !pressure
 !LSEL,s,line,,6
-!SFL,all,pres,-(pressure)
-ALLSEL,all
+NSEL,S,LOC,X,0,0.1*width
+NSEL,R,LOC,Y,1.5*height
 
-j=1
-*do,ii,1,10
-	TIME,ii
-    DK,9,uy,((0.05*height*j)/10) !line not moving
-    j=j+1
-	allsel,all
-	OUTRES,basic,last	
-	LSWRITE,ii
-*enddo
+!SFL,all,pres,-(pressure)
+SF,all,pres,-(pressure)
+ALLSEL,all
 
 ! Solution
 NLGEOM, ON
 NCNV, 2
-LSSOLVE,1,10,1
+Solve
 
 /POST1
 path,axpath,2,30,20 
