@@ -48,11 +48,15 @@ K,7,0.1*width,1.5*height
 K,8,0.15*width,1.5*height
 
 !die
-K,9,0.1125*width,1.5001*height
-K,10,0.1125*width,1.6*height
-K,11,0.1375*width,1.5001*height
-K,12,0.1375*width,1.6*height
+K,9,(0.1*width+0.003),(1.5001*height+0.003)
+K,10,0.1*width,1.6*height
+K,11,(0.15*width-0.003),(1.5001*height+0.003)
+K,12,0.15*width,1.6*height
 K,13,0,3*height
+K,14,(0.1*width+0.01),1.5001*height
+K,15,0.1*width,(1.5001*height+0.01)
+K,16,(0.15*width-0.01),1.5001*height
+K,17,0.15*width,(1.5001*height+0.01)
 
 !draw lines between keypoint
 L,1,2
@@ -66,9 +70,11 @@ L,7,8
 L,8,6
 L,6,2
 
-L,10,9
-L,9,11
-L,11,12
+L,10,15
+LARC,15,14,9
+L,14,16
+LARC,16,17,11
+L,17,12
 
 !define area from lines
 AL,1,2,3,4
@@ -77,8 +83,8 @@ AL,1,5,6,7,8,9
 
 LSEL,s,line,,6,8,1
 LCOMB,all,1
-LSEL,s,line,,10,12,1
-LCOMB,all,0
+LSEL,s,line,,10,14,1
+LCOMB,all,1
 
 !mapped mesh
 !horizontal lines
@@ -135,19 +141,30 @@ allsel,all
 eps=1e-6
 !constraint on the bottom line
 DL,3,,all,0
+
+j = 1
+*do,ii,1,10
+	TIME,ii
+    DK,13,uy,-((0.1*height*10)/10)
+    j=j+1
+	allsel,all
+	OUTRES,basic,last	
+	LSWRITE,ii
+*enddo
+
 !pressure
 !LSEL,s,line,,6
-NSEL,S,LOC,X,0,0.1*width
-NSEL,R,LOC,Y,1.5*height
-
+!NSEL,S,LOC,X,0,0.1*width
+!NSEL,R,LOC,Y,1.5*height
 !SFL,all,pres,-(pressure)
-SF,all,pres,-(pressure)
-ALLSEL,all
+!SF,all,pres,-(pressure)
+!ALLSEL,all
 
 ! Solution
 NLGEOM, ON
 NCNV, 2
-Solve
+LSSOLVE,1,10,1
+!Solve
 
 /POST1
 path,axpath,2,30,20 
