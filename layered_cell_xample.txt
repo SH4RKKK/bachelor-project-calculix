@@ -1,0 +1,207 @@
+finish
+/clear
+!-----------------------
+! parameters definition
+!-----------------------
+! >>>>>GEOMETRICAL FEATURES<<<<<
+pip_ir=10		!inner radius of the pipette [um]
+pip_or=13			!outer radius of the pipette	
+pip_height=0.8		!height of the pipette		
+pip_rf=0.08		!pipette fillet radius
+spec_r=65			!radius of the specimen
+cyto_r=60			!radius of the cytoplasm
+zp_r=5			!thickness of the zona pellucida
+refinement_t=1.2
+zp_map_r=26!22			!number of division in ZP radial dir
+zp_map_t=26!21			!number of division in ZP tangential dir
+cyto_map_r=30!34!38!42!46		!number of division in cytoplasm radial dir
+grad=1				!refining gradient
+! >>>>> MATERIAL PROPERTIES<<<<<
+E_Young_zona = 10    	! Young's modulus, kPa (ZP)
+E_Young_core = 5	!Young's modulus, kPa (CYTO)
+ni_zp = 0.4999           ! Poisson's ratio
+ni_core = 0.4999
+fric=0.0001			!friction coefficient
+bound=1				!between ZP and CYTO
+eps=1e-3
+! >>>>>LOAD & BC<<<<<
+pressure = 250/1e3 !Pa
+steps =4
+/prep7				!preprocessing
+ET,1,PLANE183,,,1,,,1	!plane element
+!keyopt,1,3,1    	!symm
+!keyopt,1,6,1
+!ZONA
+mp,mu,1,fric
+mp,ex,1,E_Young_zona
+mp,prxy,1,ni_zp
+!CYTO
+mp,ex,2,E_Young_core
+mp,prxy,2,ni_core
+
+!MODEL KP - bottom up approach
+!base geom keypoints
+K,1,0,0+spec_r
+K,2,0,cyto_r+spec_r
+K,3,0,cyto_r+zp_r+spec_r
+K,4,0,0
+K,5,0,zp_r
+!refinement for contact
+y_zp=SQRT(spec_r**2-(pip_ir-2*pip_rf)**2)+spec_r
+K,6,pip_ir-2*pip_rf,y_zp
+y_zp2=SQRT(spec_r**2-(pip_or+10*pip_rf)**2)+spec_r
+K,7,pip_or+10*pip_rf,y_zp2
+K,8,pip_ir-2*pip_rf,y_zp-refinement_t
+K,9,pip_or+10*pip_rf,y_zp2-refinement_t
+K,20,cyto_r,spec_r
+!draw lines
+L,2,1
+L,3,2
+LARC,6,3,1,spec_r
+LARC,7,6,1,spec_r
+LARC,7,4,1,spec_r		!LINE #5
+L,4,5
+LARC,2,20,1,cyto_r
+LARC,20,5,1,cyto_r
+LARC,8,9,1,cyto_r-refinement_t
+L,1,5					!LINE #10
+L,6,8
+L,7,9
+!zona pellucida
+AL,4,12,9,11
+A,2,3,6,8,9,7,4,5,20
+!cytoplasm
+AL,1,7,8,10
+
+
+!pipette
+yval_inner=SQRT((spec_r+pip_rf)**2-(pip_ir+pip_rf)**2)-pip_rf/60
+K,10,pip_ir,pip_height+yval_inner+spec_r
+K,11,pip_or,pip_height+yval_inner+spec_r
+K,12,pip_or,yval_inner+spec_r
+K,13,pip_or-pip_rf,yval_inner-pip_rf+spec_r
+K,14,pip_ir+pip_rf,yval_inner-pip_rf+spec_r
+K,15,pip_ir,yval_inner+spec_r
+L,10,11
+L,11,12
+LARC,12,13,10,pip_rf
+L,13,14					!LINE #15
+LARC,14,15,11,pip_rf
+L,15,10
+!merge pipette surface lines
+LCOMB,14,15,0
+LCOMB,14,16,0
+LCOMB,14,17,0
+LCOMB,14,18
+!pilot node
+K,16,(pip_ir+pip_or)/2,spec_r+pip_height*2+cyto_r+zp_r
+!mapped mesh
+!contact region
+LSEL,s,line,,11,12,1
+LESIZE,all,,,zp_map_r
+LSEL,s,line,,4,9,5
+LESIZE,all,,,zp_map_r*8
+!tangential
+LSEL,s,line,,2
+LESIZE,all,,,zp_map_r*3,-grad
+LSEL,s,line,,2
+LESIZE,all,,,zp_map_r*1,-grad
+LSEL,s,line,,7
+LESIZE,all,,,zp_map_t*4,grad
+LSEL,s,line,,8
+LESIZE,all,,,zp_map_t*2
+LSEL,s,line,,5
+LESIZE,all,,,zp_map_t*8+160,grad*6
+LSEL,s,line,,6
+LESIZE,all,,,20
+LSEL,s,line,,3
+LESIZE,all,,,90,2*grad
+LSEL,s,line,,1,10,9
+LESIZE,all,,,zp_map_t*3
+mshape,0,2D					!mesh with quadrilateral elements
+mshkey,1
+!mesh the ZP
+ASEL,s,area,,1
+mat,1
+amesh,all
+!mesh the CYTO
+mshkey,0
+ASEL,s,area,,2
+mat,1
+amesh,all
+ASEL,s,area,,3
+mat,2
+amesh,all
+
+!contact surfaces
+ET,2,TARGE169
+ET,3,CONTA172
+KEYOPT,3,2,0 	!Contact algorithm: Augmented Lagrangian
+KEYOPT,3,7,1 	!Element level time incrementation control: Automatic bisection of increment
+KEYOPT,3,9,2 	!Include both initial geometrical penetration or gap and offset, but with ramped effects
+KEYOPT,3,10,2 	!Contact stiffness update: Each iteration
+allsel,all
+!FIRST CONTACT PAIR: B HOLDER------
+TYPE,2						!TARGET
+REAL,2
+LDIV,14,,,zp_map_t*12
+LSEL,s,line,,14,14+zp_map_t*12-1,1
+LMESH,all
+KMESH,16	!pilot node
+ESURF,,REVERSE  
+allsel,all
+!-----------------------------------
+TYPE,3						!CONTACT
+REAL,2
+LSEL,s,line,,4
+NSLL,s,1
+ESURF
+allsel,all
+
+/solu
+eps=1e-6
+!constrains
+DK,16,all,0
+ALLSEL,all
+
+*do,ii,1,steps,1
+    TIME,ii
+	LSEL,s,line,,3
+	SFL,all,pres,-(pressure*ii/steps)
+	OUTRES,all,last
+    LSWRITE,ii
+*enddo
+ALLSEL,ALL
+ ! Solution
+
+SOLCONTROL, ON  !Control of solution
+NLGEOM, ON		!Includes geometric nonlinearities
+NCNV, 2
+LSSOLVE,1,steps,1
+finish
+
+!data extraction
+NSOL,2,37378,U,Y,zona_Y
+STORE,MERGE 
+NSOL,3,37379,U,Y,cyto_Y
+STORE,MERGE 
+ANSOL,4,37378,S,Y,SY_4  
+STORE,MERGE 
+! Save time history variables to file time_20.csv   
+*CREATE,scratch,gui 
+*DEL,_P26_EXPORT
+*DIM,_P26_EXPORT,TABLE,5,3  
+VGET,_P26_EXPORT(1,0),1 
+VGET,_P26_EXPORT(1,1),2 
+VGET,_P26_EXPORT(1,2),3 
+VGET,_P26_EXPORT(1,3),4 
+name_file_res = pip_ir
+/OUTPUT,name_file_res,'csv','.' 
+*VWRITE,'TIME','zona_Y' 
+%C, %C, %C, %C
+*VWRITE,_P26_EXPORT(1,0),_P26_EXPORT(1,1),_P26_EXPORT(1,2),_P26_EXPORT(1,3)  
+%G, %G, %G, %G
+/OUTPUT,TERM
+*END
+/INPUT,scratch,gui  
+! End of time history save  
