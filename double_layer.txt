@@ -1,8 +1,6 @@
 finish
 /clear
-!-----------------------
-! parameters definition
-!-----------------------
+
 ! >>>>>GEOMETRICAL FEATURES<<<<<
 height = 10
 width = 20
@@ -10,22 +8,25 @@ refinement_t=1.2
 ndiv_h=112			!number of division 
 ndiv_v=32			!number of division 
 grad=1				!refining gradient
+
 ! >>>>> MATERIAL PROPERTIES1<<<<<
 E_Young_zona = 10    		! Young's modulus, kPa (ZP)
 ni_zp = 0.3           		! Poisson's ratio
 fric=0.0001			!friction coefficient
 eps=1e-3
+
 ! >>>>> MATERIAL PROPERTIES2<<<<<
 E_Young_zona = 200    		! Young's modulus, kPa (ZP)
 ni_zp = 0.1 	       		! Poisson's ratio
 fric=0.0001
+
 ! >>>>>LOAD & BC<<<<<
 pressure = 25000/1e3 !Pa
 steps =4
 /prep7				!preprocessing
 ET,1,PLANE183			!plane element
-keyopt,1,3,1    		!symm
-!keyopt,1,6,1			!mixed u/P formulation
+keyopt,1,3,1    		!symm not sure if this is correct?
+
 !ZONA
 mp,mu,1,fric
 mp,ex,1,E_Young_zona
@@ -36,8 +37,8 @@ mp,ex,2,E_Young_zona
 mp,prxy,2,ni_zp
 
 
-!MODEL KP - bottom up approach
-!base geom keypoints
+!MODEL
+!base keypoints
 K,1,0,height
 K,2,width,height
 K,3,width,0
@@ -47,18 +48,18 @@ K,6,width,1.5*height
 K,7,0.1*width,1.5*height
 K,8,0.15*width,1.5*height
 
-!die
-K,9,(0.1*width+0.003),(1.5001*height+0.003)
-K,10,0.1*width,1.6*height
-K,11,(0.15*width-0.003),(1.5001*height+0.003)
-K,12,0.15*width,1.6*height
+!Cup keypoints
+K,9,(0.1*width+0.016),(1.5001*height+0.016)
+K,10,0.1*width,1.55*height
+K,11,(0.15*width-0.016),(1.5001*height+0.016)
+K,12,0.15*width,1.55*height
 K,13,0,3*height
-K,14,(0.1*width+0.01),1.5001*height
-K,15,0.1*width,(1.5001*height+0.01)
-K,16,(0.15*width-0.01),1.5001*height
-K,17,0.15*width,(1.5001*height+0.01)
+K,14,(0.1*width+0.05),1.5001*height
+K,15,0.1*width,(1.5001*height+0.05)
+K,16,(0.15*width-0.05),1.5001*height
+K,17,0.15*width,(1.5001*height+0.05)
 
-!draw lines between keypoint
+!draw lines between keypoints
 L,1,2
 L,2,3
 L,3,4
@@ -70,6 +71,7 @@ L,7,8
 L,8,6
 L,6,2
 
+!check if no PC works > need to understand how it works through example
 L,10,15
 LARC,15,14,9
 L,14,16
@@ -80,28 +82,29 @@ L,17,12
 AL,1,2,3,4
 AL,1,5,6,7,8,9
 
-
+!combine lines
 LSEL,s,line,,6,8,1
-LCOMB,all,1
+LCOMB,all,0
 LSEL,s,line,,10,14,1
-LCOMB,all,1
+LCOMB,all,0
 
 !mapped mesh
 !horizontal lines
 LSEL,s,line,,1,3,2
-LESIZE,all,,,ndiv_h
-LSEL,s,line,,1,13,12 !fail to mesh
+LSEL,a,line,,1,6,5
 LESIZE,all,,,ndiv_h
 
-!vertical one needs to be halved.
+!vertical
 LSEL,s,line,,2,4,2
 LESIZE,all,,,ndiv_v
 LSEL,s,line,,5,9,4
 LESIZE,all,,,ndiv_v*0.5
 
+!make smaller mesh under contact > check example
 !mesh with quadrilateral elements
 mshape,0,2D			
 mshkey,1
+
 !mesh the ZP
 ASEL,s,area,,1
 mat,1
@@ -122,20 +125,26 @@ allsel,all
 !FIRST CONTACT PAIR: B HOLDER------
 TYPE,2						!TARGET
 REAL,2
-LDIV,10,,,8
-LSEL,s,line,,7,8+10,1
+LDIV,10,,,15
+LSEL,s,line,,7,22,1
+LSEL,u,line,,9
 LMESH,all
 KMESH,13
 allsel,all
+
 !-----------------------------------
 TYPE,3						!CONTACT
 REAL,2
 NSEL,S,LOC,X,0.1*width,0.15*width
 NSEL,R,LOC,Y,1.5*height
-!LSEL,s,line,,6
-!NSLL,s,1
 ESURF
 allsel,all
+
+!pressure
+NSEL,S,LOC,X,0,0.1*width
+NSEL,R,LOC,Y,1.5*height
+SF,all,pres,-(pressure)
+ALLSEL,all
 
 /solu
 eps=1e-6
@@ -145,20 +154,12 @@ DL,3,,all,0
 j = 1
 *do,ii,1,10
 	TIME,ii
-    DK,13,uy,-((0.1*height*10)/10)
+    DK,13,uy,-(height*(j*0.01))
     j=j+1
 	allsel,all
 	OUTRES,basic,last	
 	LSWRITE,ii
 *enddo
-
-!pressure
-!LSEL,s,line,,6
-!NSEL,S,LOC,X,0,0.1*width
-!NSEL,R,LOC,Y,1.5*height
-!SFL,all,pres,-(pressure)
-!SF,all,pres,-(pressure)
-!ALLSEL,all
 
 ! Solution
 NLGEOM, ON
@@ -169,7 +170,7 @@ LSSOLVE,1,10,1
 /POST1
 path,axpath,2,30,20 
 ppath,1,,0,0 
-ppath,2,,0,2*height
+ppath,2,,0,1.5*height
 PDEF,axUY,U,Y
 PDEF,axSY,S,Y
 PAGET,PathData,TABLE
@@ -179,4 +180,3 @@ PAGET,PathData,TABLE
 (F8.4,F8.4,F8.4)
 *enddo
 *CFCLOS
-
