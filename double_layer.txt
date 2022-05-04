@@ -135,7 +135,7 @@ allsel,all
 !-----------------------------------
 TYPE,3						!CONTACT
 REAL,2
-NSEL,S,LOC,X,0.1*width,0.15*width
+NSEL,S,LOC,X,0.05*width,0.2*width
 NSEL,R,LOC,Y,1.5*height
 ESURF
 allsel,all
@@ -180,3 +180,6 @@ PAGET,PathData,TABLE
 (F8.4,F8.4,F8.4)
 *enddo
 *CFCLOS
+
+
+!next step add mesh gradient
