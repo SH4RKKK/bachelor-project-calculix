@@ -5,8 +5,8 @@ finish
 height = 10
 width = 20
 refinement_t=1.2
-ndiv_h=26			!number of division 
-ndiv_v=16			!number of division 
+ndiv_h=40			!number of division 
+ndiv_v=20			!number of division 
 grad=1				!refining gradient
 
 ! >>>>> MATERIAL PROPERTIES1<<<<<
@@ -21,7 +21,7 @@ ni_zp = 0.1 	       		! Poisson's ratio
 fric=0.0001
 
 ! >>>>>LOAD & BC<<<<<
-pressure = 1  !/1e3 !Pa
+pressure = 0.025  !/1e3 !Pa
 steps =4
 /prep7				!preprocessing
 ET,1,PLANE183			!plane element
@@ -59,8 +59,12 @@ K,15,0.1*width,(1.5001*height+0.05)
 K,16,(0.15*width-0.05),1.5001*height
 K,17,0.15*width,(1.5001*height+0.05)
 
+K,18,0.2*width,height
+K,19,0.2*width,1.5*height
+
 !draw lines between keypoints
-L,1,2
+L,1,18
+L,18,2
 L,2,3
 L,3,4
 L,4,1
@@ -68,8 +72,10 @@ L,4,1
 L,1,5
 L,5,7
 L,7,8
-L,8,6
+L,8,19
+L,19,6
 L,6,2
+L,18,19
 
 !check if no PC works > need to understand how it works through example
 L,10,15
@@ -78,34 +84,49 @@ L,14,16
 LARC,16,17,11
 L,17,12
 
-!define area from lines
-AL,1,2,3,4
-AL,1,5,6,7,8,9
-
 !combine lines
-LSEL,s,line,,6,8,1
+LSEL,s,line,,7,9,1
 LCOMB,all,0
-LSEL,s,line,,10,14,1
+LSEL,s,line,,13,17,1
 LCOMB,all,0
+allsel,all
+
+!define area from lines
+AL,1,2,3,4,5
+AL,6,7,12,1
+AL,12,10,11,2
+
+LCCAT,1,2
 
 !mapped mesh
 !horizontal lines
+
+LSEL,s,line,,7
+LESIZE,all,,,ndiv_h*3.2
+
 LSEL,s,line,,1
+LESIZE,all,,,ndiv_h*0.8
+
+LSEL,s,line,,2,10,8
+LESIZE,all,,,ndiv_h*0.4
+
+LSEL,s,line,,4,8,4
 LESIZE,all,,,ndiv_h
-LSEL,s,line,,3
-LESIZE,all,,,ndiv_h
-LSEL,s,line,,6
-LESIZE,all,,,ndiv_h*8,grad*8
 
 !vertical
-LSEL,s,line,,2
+LSEL,s,line,,11
+LESIZE,all,,,ndiv_v*0.5
+LSEL,s,line,,3
 LESIZE,all,,,ndiv_v
-LSEL,s,line,,4
-LESIZE,all,,,ndiv_v
+
 LSEL,s,line,,5
-LESIZE,all,,,ndiv_v*0.5
-LSEL,s,line,,9
-LESIZE,all,,,ndiv_v*0.5
+LESIZE,all,,,ndiv_v
+
+LSEL,s,line,,12
+LESIZE,all,,,ndiv_v
+
+LSEL,s,line,,6
+LESIZE,all,,,ndiv_v
 
 !mesh with quadrilateral elements
 mshape,0,2D			
@@ -115,7 +136,12 @@ mshkey,1
 ASEL,s,area,,1
 mat,1
 amesh,all
+
 ASEL,s,area,,2
+mat,2
+amesh,all
+
+ASEL,s,area,,3
 mat,2
 amesh,all
 
@@ -131,9 +157,9 @@ allsel,all
 !FIRST CONTACT PAIR: B HOLDER------
 TYPE,2						!TARGET
 REAL,2
-LDIV,10,,,40
-LSEL,s,line,,7,47,1
-LSEL,u,line,,9
+LDIV,13,,,40
+LSEL,s,line,,13,51,1
+LSEL,a,line,,9
 LMESH,all
 KMESH,13
 allsel,all
@@ -146,10 +172,10 @@ NSEL,R,LOC,Y,1.5*height
 ESURF
 allsel,all
 
-DK,13,uy,-(0.00011)
+DK,13,uy,-(0.0001)
 
 !pressure
-NSEL,S,LOC,X,0,(0.1*width+0.05)
+NSEL,S,LOC,X,0,(0.1*width+0.04)
 NSEL,R,LOC,Y,1.5*height
 SF,all,pres,-(pressure)
 ALLSEL,all
@@ -157,7 +183,7 @@ ALLSEL,all
 /solu
 eps=1e-6
 !constraint on the bottom line
-DL,3,,all,0
+DL,4,,all,0
 
 !*do,ii,1,1
 !	TIME,ii
