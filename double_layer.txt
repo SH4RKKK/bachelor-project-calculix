@@ -16,12 +16,12 @@ fric=0.0001			!friction coefficient
 eps=1e-3
 
 ! >>>>> MATERIAL PROPERTIES2<<<<<
-E_Young_zona = 200    		! Young's modulus, kPa (ZP)
+E_Young_zona = 10    		! Young's modulus, kPa (ZP)
 ni_zp = 0.1 	       		! Poisson's ratio
 fric=0.0001
 
 ! >>>>>LOAD & BC<<<<<
-pressure = 25  !/1e3 !Pa
+pressure = 1  !/1e3 !Pa
 steps =4
 /prep7				!preprocessing
 ET,1,PLANE183			!plane element
@@ -90,20 +90,23 @@ LCOMB,all,0
 
 !mapped mesh
 !horizontal lines
-LSEL,s,line,,1,3,2
+LSEL,s,line,,1
+LESIZE,all,,,ndiv_h
+LSEL,s,line,,3
 LESIZE,all,,,ndiv_h
 LSEL,s,line,,6
-LESIZE,all,,,ndiv_h*4,grad*8
+LESIZE,all,,,ndiv_h*8,grad*8
 
 !vertical
-LSEL,s,line,,2,4,2
+LSEL,s,line,,2
+LESIZE,all,,,ndiv_v
+LSEL,s,line,,4
 LESIZE,all,,,ndiv_v
 LSEL,s,line,,5
-LESIZE,all,,,ndiv_v,grad*0.25
+LESIZE,all,,,ndiv_v*0.5
 LSEL,s,line,,9
-LESIZE,all,,,ndiv_v
+LESIZE,all,,,ndiv_v*0.5
 
-!make smaller mesh under contact > check example
 !mesh with quadrilateral elements
 mshape,0,2D			
 mshkey,1
@@ -128,8 +131,8 @@ allsel,all
 !FIRST CONTACT PAIR: B HOLDER------
 TYPE,2						!TARGET
 REAL,2
-LDIV,10,,,30
-LSEL,s,line,,7,37,1
+LDIV,10,,,40
+LSEL,s,line,,7,47,1
 LSEL,u,line,,9
 LMESH,all
 KMESH,13
@@ -138,13 +141,15 @@ allsel,all
 !-----------------------------------
 TYPE,3						!CONTACT
 REAL,2
-NSEL,S,LOC,X,0.05*width,0.2*width
+NSEL,S,LOC,X,0.08*width,0.17*width
 NSEL,R,LOC,Y,1.5*height
 ESURF
 allsel,all
 
+DK,13,uy,-(0.00011)
+
 !pressure
-NSEL,S,LOC,X,0,0.1*width
+NSEL,S,LOC,X,0,(0.1*width+0.05)
 NSEL,R,LOC,Y,1.5*height
 SF,all,pres,-(pressure)
 ALLSEL,all
@@ -154,21 +159,20 @@ eps=1e-6
 !constraint on the bottom line
 DL,3,,all,0
 
-j = 1
-*do,ii,1,10
-	TIME,ii
-    DK,13,uy,-(height*(j*0.02))
-    j=j+1
-	allsel,all
-	OUTRES,basic,last	
-	LSWRITE,ii
-*enddo
+!*do,ii,1,1
+!	TIME,ii
+!    DK,13,uy,-(0.00015)
+!	allsel,all
+!	OUTRES,basic,last	
+!	LSWRITE,ii
+!*enddo
 
 ! Solution
 NLGEOM, ON
 NCNV, 2
-LSSOLVE,1,10,1
-!Solve
+Solve
+!LSSOLVE,1,1,1
+
 
 /POST1
 path,axpath,2,30,20 
@@ -184,5 +188,4 @@ PAGET,PathData,TABLE
 *enddo
 *CFCLOS
 
-
-!next step add mesh gradient
+!make different compartment
