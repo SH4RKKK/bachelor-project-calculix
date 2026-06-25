@@ -1,7 +1,7 @@
 # bachelor-project-calculix
 
 Finite-element (FEM) structural analysis from my bachelor's in Medical Natural
-Sciences (VU Amsterdam, 2022) — modelling stress and deformation in simple and
+Sciences (VU Amsterdam, 2022). Modelling stress and deformation in simple and
 layered structures, including biological tissue, to study mechanical response and
 estimate properties such as Young's modulus.
 
